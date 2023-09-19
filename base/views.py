@@ -2,6 +2,9 @@ from django.shortcuts import render,redirect
 from datetime import datetime
 import requests
 from geopy.geocoders import Nominatim
+import os
+from decouple import config
+
 
 # Create your views here.
 def home(request):
@@ -33,9 +36,15 @@ def home(request):
 
 
     #-------------------get the weather--------------------------#  
-    apiKey = 'ce1be01765cc4d9a824d4fd9986e68b2'
-    url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={apiKey}"      # api url
 
+
+    # Retrieve the API key from an environment variable
+    api_key = config("OPENWEATHERMAP_API_KEY")
+
+    if api_key is None:
+        raise Exception("API key not found in environment variables.")  
+    
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}"      # api url
     response = requests.get(url)
     data = response.json()      # get the data about weather
 
