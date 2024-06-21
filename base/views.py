@@ -1,10 +1,11 @@
 from django.shortcuts import render,redirect
 from datetime import datetime
 import requests
+import json
 from geopy.geocoders import Nominatim
 import os
 from decouple import config
-
+from .utilities import get_coordinates, get_current_location
 
 # Create your views here.
 def home(request):
@@ -47,77 +48,65 @@ def home(request):
     url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}"      # api url
     response = requests.get(url)
     data = response.json()      # get the data about weather
-
+    # print(data)
     kelvinTemp = data['main']['temp']
     celsiusTemp = kelvinTemp-273.15
     context['celsi']=round(celsiusTemp)
+
     feelsLike=data['main']['feels_like']-273.15
     context['feelsLike']=round(feelsLike)
+
     maxTemp=data['main']['temp_max']-273.15
     context['maxTemp']=round(maxTemp)
+
     minTemp=data['main']['temp_min']-273.15
     context['minTemp']=round(minTemp)
+
     humidity=data["main"]["humidity"]
     context['humidity']=humidity
+
     windSpeed=data["wind"]["speed"]
     context['windSpeed']=windSpeed
+
     direction=data['wind']['deg']
     context['direction']=direction
+
     pressure=data["main"]["pressure"]
     context['pressure']=pressure
+
     visibility=data['visibility']
     context['visibility']=visibility/1000
+
     sunriseTime=datetime.fromtimestamp((int)(data["sys"]["sunrise"])).strftime('%H:%M')
     context['sunrise']=sunriseTime
+
     sunsetTime=datetime.fromtimestamp((int)(data["sys"]["sunset"])).strftime('%H:%M')
     context['sunset']=sunsetTime
 
     cloudiness = data["clouds"]["all"]
     context['cloud']=cloudiness
 
+    forecast = get_weather_forecast(latitude, longitude, api_key)
+    context['forecast'] = forecast
+    print(forecast)
+
     return render(request,'home.html', context)
 
 
 
 
+def get_weather_forecast(latitude, longitude, api_key):
+    # Construct the URL for the API request
+    url = f"http://api.openweathermap.org/data/2.5/forecast/daily?lat={latitude}&lon={longitude}&cnt=10&appid={api_key}"
 
-def get_coordinates(city_name):
-    try:
-        # Initialize a geolocator using Nominatim (OpenStreetMap)
-        geolocator = Nominatim(user_agent="city_geocoder")
+    # Make the API request
+    response = requests.get(url)
 
-        # Use geocode to get location information for the city
-        location = geolocator.geocode(city_name)
+    # Parse the JSON response
+    weather_data = json.loads(response.text)
+    print(weather_data)
+    # Get the weather forecast for the next 10 days
+    # forecast = weather_data['list']
 
-        if location:
-            latitude = location.latitude
-            longitude = location.longitude
-            return latitude, longitude
-        else:
-            return None
-
-    except Exception as e:
-        return None
-
-
-
-
-
-
-def get_current_location():
-    try:
-        # Make a GET request to the ip-api.com API
-        response = requests.get('http://ip-api.com/json')
-
-        if response.status_code == 200:
-            data = response.json()
-            latitude = data['lat']
-            longitude = data['lon']
-            city_name=data['city']
-            return float(latitude), float(longitude), str(city_name)
-        else:
-            return None
-
-    except Exception as e:
-        return None
+    return None
 
